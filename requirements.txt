@@ -1,6 +1,7 @@
 torch
 torchvision
-sklearn
+scikit-learn
 transformers
 nltk
 pandas
+tensorboardX

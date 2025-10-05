@@ -25,7 +25,8 @@ from transformers import (WEIGHTS_NAME, BertConfig, BertForSequenceClassificatio
                                   XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer,
                                   RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer)
 
-from transformers import AdamW, get_linear_schedule_with_warmup
+from torch.optim import AdamW
+from transformers import get_linear_schedule_with_warmup
 
 from utils import (convert_examples_to_features,
                    output_modes, processors)

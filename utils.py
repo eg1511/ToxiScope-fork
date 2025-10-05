@@ -103,7 +103,7 @@ class BinaryProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train_50.tsv")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -123,20 +123,15 @@ class BinaryProcessor(DataProcessor):
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
-        flag = False
-        text_b = None
         lines = lines[1:]
         for (i, line) in enumerate(lines):
+            if len(line) != 4:
+                continue
             guid = "%s-%s" % (set_type, i)
-            if line[3]:
-                text_a = line[3]
-                label = line[6]
-                flag = True
-            if isinstance(line[2], str) and line[2]:
-                text_b = line[2]
-            if flag:
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            text_a = line[0]
+            label = line[3]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
 

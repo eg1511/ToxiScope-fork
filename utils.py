@@ -110,7 +110,7 @@ class BinaryProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+            self._read_tsv(os.path.join(data_dir, "train_50.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -130,20 +130,14 @@ class BinaryProcessor(DataProcessor):
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
-        flag = False
-        text_b = None
         lines = lines[1:]
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
-            if line[0]:
-                text_a = line[0]
-                label = line[3]
-                flag = True
-            if isinstance(line[2], str) and line[2]:
-                text_b = line[2]
-            if flag:
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            text_a = line[3]
+            text_b = line[2] if len(line) > 2 and line[2] else None
+            label = line[6] if len(line) > 6 else None
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
 
@@ -185,7 +179,7 @@ class GoogleSheetsProcessor(DataProcessor):
             guid = "%s-%s" % (set_type, i)
             text_a = line['text_a']
             text_b = line.get('text_b', None)
-            label = str(line['label'])
+            label = str(line['label']) if 'label' in line else None
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
@@ -265,12 +259,20 @@ def convert_example_to_feature(example_row, pad_token=0,
     assert len(input_mask) == max_seq_length
     assert len(segment_ids) == max_seq_length
 
-    if output_mode == "classification":
-        label_id = label_map[example.label]
-    elif output_mode == "regression":
-        label_id = float(example.label)
+    if example.label is None:
+        if output_mode == "classification":
+            label_id = -100  # PyTorch CrossEntropyLoss default ignore_index
+        elif output_mode == "regression":
+            label_id = -100.0  # Placeholder for unlabeled regression
+        else:
+            raise KeyError(output_mode)
     else:
-        raise KeyError(output_mode)
+        if output_mode == "classification":
+            label_id = label_map[example.label]
+        elif output_mode == "regression":
+            label_id = float(example.label)
+        else:
+            raise KeyError(output_mode)
 
     return InputFeatures(input_ids=input_ids,
                          input_mask=input_mask,

@@ -397,8 +397,15 @@ def evaluate(model, tokenizer, prefix="", test=False, eval_output_dir=args['outp
         pred_label = np.amax(probs.detach().cpu().numpy(), axis=1)
     elif args['output_mode'] == "regression":
         preds = np.squeeze(preds)
+    labeled_indices = out_label_ids != -100
+    preds = preds[labeled_indices]
+    out_label_ids = out_label_ids[labeled_indices]
+
     result, wrong = compute_metrics(EVAL_TASK, preds, out_label_ids)
-    _, wrong_logits = compute_metrics(EVAL_TASK, pred_label, out_label_ids)
+
+    if args['output_mode'] == "classification":
+        pred_label = pred_label[labeled_indices]
+        _, wrong_logits = compute_metrics(EVAL_TASK, pred_label, out_label_ids)
     results.update(result)
     print("Test mode:", test) 
     if test:

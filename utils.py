@@ -29,6 +29,13 @@ from sklearn.metrics import matthews_corrcoef, f1_score
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 
+try:
+    import gspread
+    from google.colab import auth
+    from google.auth import default
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 csv.field_size_limit(2147483647)
 
@@ -103,7 +110,7 @@ class BinaryProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train_50.tsv")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -128,15 +135,59 @@ class BinaryProcessor(DataProcessor):
         lines = lines[1:]
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
-            if line[3]:
-                text_a = line[3]
-                label = line[6]
+            if line[0]:
+                text_a = line[0]
+                label = line[3]
                 flag = True
             if isinstance(line[2], str) and line[2]:
                 text_b = line[2]
             if flag:
                 examples.append(
                     InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+
+class GoogleSheetsProcessor(DataProcessor):
+    """Processor for data from Google Sheets."""
+
+    def __init__(self):
+        auth.authenticate_user()
+        creds, _ = default()
+        self.gc = gspread.authorize(creds)
+
+    def _get_sheet_data(self, sheet_name, worksheet_name):
+        worksheet = self.gc.open(sheet_name).worksheet(worksheet_name)
+        return worksheet.get_all_records()
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._get_sheet_data("Toxic Language Detection Data", "train"), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._get_sheet_data("Toxic Language Detection Data", "dev"), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._get_sheet_data("Toxic Language Detection Data", "test"), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line['text_a']
+            text_b = line.get('text_b', None)
+            label = str(line['label'])
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
 
@@ -275,9 +326,11 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
 
 
 processors = {
-    "binary": BinaryProcessor
+    "binary": BinaryProcessor,
+    "google_sheets": GoogleSheetsProcessor
 }
 
 output_modes = {
-    "binary": "classification"
+    "binary": "classification",
+    "google_sheets": "classification"
 }

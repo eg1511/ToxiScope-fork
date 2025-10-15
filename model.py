@@ -9,7 +9,6 @@ import torch.nn.functional as F
 import numpy as np
 #from torchtext.utils import download_from_url
 from transformers import BertTokenizer, BertModel, BertForMaskedLM, BertForTokenClassification, BertConfig
-from transformers.modeling_roberta import RobertaClassificationHead
 from torch.nn import CrossEntropyLoss, MSELoss
 
 class FocalLoss(nn.Module):
@@ -93,7 +92,7 @@ class BERT_MLP(nn.Module):
                  ):
         super(BERT_MLP, self).__init__()
         config = BertConfig.from_pretrained("bert-large-uncased")
-        self.weights_add = Variable(torch.Tensor(config.hidden_size), requires_grad=True).cuda()
+        self.weights_add = nn.Parameter(torch.Tensor(config.hidden_size))
         #self.model = BertModel.from_pretrained("bert-base-uncased")
         self.model = BertModel(config)
         for param in self.model.parameters():
@@ -129,7 +128,7 @@ class BERT_MLP(nn.Module):
             print(loss.item())
         #return ((loss,))
             if loss is not None:
-                return logits, ((loss,)+outputs)
+                return logits, (loss,) + outputs.to_tuple()
             else:
                 return logits, outputs
         #return logits, ((loss,) + outputs) if loss is not None else logits, outputs   # (loss), reshaped_logits, (hidden_states), (attentions)

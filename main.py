@@ -15,6 +15,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 import random
 from torch.utils.data import WeightedRandomSampler
+from torch.optim import AdamW
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 from tensorboardX import SummaryWriter
@@ -25,7 +26,7 @@ from transformers import (WEIGHTS_NAME, BertConfig, BertForSequenceClassificatio
                                   XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer,
                                   RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer)
 
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
 
 from utils import (convert_examples_to_features,
                    output_modes, processors)
@@ -93,6 +94,8 @@ model = BERT_MLP()
 model.to(device)
 
 task = args['task_name']
+if args['data_dir'] == 'google_sheets':
+    task = 'google_sheets'
 
 if task in processors.keys() and task in output_modes.keys():
     processor = processors[task]()

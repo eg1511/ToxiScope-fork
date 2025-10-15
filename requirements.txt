@@ -1,6 +1,9 @@
 torch
 torchvision
-sklearn
+scikit-learn
 transformers
 nltk
 pandas
+gspread
+google-auth-oauthlib
+tensorboardX
